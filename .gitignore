@@ -16,11 +16,13 @@
 !/cordis.patch.yml
 !/lib/
 !/client/
+!/client-src/
 !/tests/
 !/tools/
 /tools/*
 !/tools/runtime-build/
 !/tools/host-compat/
+!/tools/build-client.mjs
 
 node_modules/
 artifacts/

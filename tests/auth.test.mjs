@@ -49,7 +49,12 @@ test('registry probe returns discovered models and completed authentication inva
     assert.equal(before.authenticated, false);
     assert.equal((await manager.getAgentAccountStatus(agent)).checkedAt, before.checkedAt, 'old unauthenticated status is cached');
     await manager.startLogin(agent, { methodId: 'fixture-login', forceNewToken: true });
-    for (const deadline = Date.now() + 5000; manager.getFlowState(agent.id)?.phase !== 'succeeded';) {
+    for (const deadline = Date.now() + 15000; ;) {
+      const flow = manager.getFlowState(agent.id);
+      if (flow?.phase === 'succeeded') break;
+      if (flow?.phase === 'failed' || flow?.phase === 'cancelled') {
+        assert.fail(`Scripted real ACP login ended as ${flow.phase}: ${flow.message || ''}`);
+      }
       if (Date.now() > deadline) assert.fail('Scripted real ACP login did not complete');
       await new Promise(resolve => setTimeout(resolve, 20));
     }

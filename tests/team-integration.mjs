@@ -9,6 +9,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import * as plugin from '../lib/index.js';
 import { saveAgentsConfig } from '../lib/presets.js';
 import { runtimeBundle } from '../lib/agent-runtime.js';
+import { allowDesktopConfirm } from './confirm-stub.mjs';
 
 if (!process.env.DSH_HARNESS_ROOT) throw new Error('Set DSH_HARNESS_ROOT to a built DeepSeek Harness checkout.');
 const req = createRequire(path.join(process.env.DSH_HARNESS_ROOT, 'packages/subagent/subagent-spawn-in-process/package.json'));
@@ -78,7 +79,9 @@ async function until(predicate, label, timeout = 10000) {
   }
 }
 
+let disposeConfirm;
 try {
+  disposeConfirm = await allowDesktopConfirm();
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   origin = `http://127.0.0.1:${server.address().port}`;
   saveAgentsConfig(['alpha', 'beta'].map((id) => ({
@@ -176,6 +179,7 @@ try {
 
   console.log(JSON.stringify({ checks: checks.length, result: 'PASS', environment: 'real host subagents and Agent Teams, scripted ACP subprocesses' }));
 } finally {
+  await disposeConfirm?.();
   await ctx.fiber.dispose();
   await runtimeBundle().disposeAgentRuntime();
   await new Promise((resolve) => server.close(resolve));

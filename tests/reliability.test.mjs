@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { saveAgentPatch } from '../client-src/settings-actions.js';
 import { createAcpAgentsManager } from '../lib/index.js';
 import { AcpSessionConnection, AcpTurnExecution, modelsFromConfigOptions, probeAcpAgent } from '../lib/acp-session.js';
 import { AgentAuthManager } from '../lib/agent-auth.js';
@@ -73,8 +73,8 @@ test('terminal callbacks racing cancellation retain their service and cannot cre
 });
 
 test('Agent-first picker uses the shared directory and ACP visibility is projected from current config', async () => {
-  assert.match(source, /name: 'conversation.input.model',/);
-  assert.match(source, /name: 'conversation.input.model.options',/);
+  assert.match(source, /name:\s*['"]conversation\.input\.model['"],/);
+  assert.match(source, /name:\s*['"]conversation\.input\.model\.options['"],/);
   const root = temp(), storeFile = path.join(root, 'agents.json');
   saveAgentsConfig([{ id: 'new-agent', enabled: true, hiddenModels: ['old-hidden'], models: [{ id: 'new-visible' }, { id: 'old-hidden' }] }], storeFile);
   const manager = createAcpAgentsManager({}, { storeFile });
@@ -135,20 +135,23 @@ test('termination and repeated close share one awaited resource finalizer', asyn
   let plans = 0, tokens = 0;
   const release = configureRuntimeHost({});
   const root = temp();
-  await initAgentRuntime();
-  const conn = new AcpSessionConnection({ cwd: root, agentConfig: { id: 'termination-fixture', name: 'Unknown agent', command: process.execPath, args: [fileURLToPath(new URL('./agent-fixture.cjs', import.meta.url))] }, mcpInjection: { release: () => { tokens++; } } });
-  await conn.ensureReady();
-  const handle = conn.handle;
-  conn._agyPlan = { cleanup: async () => { plans++; } };
-  conn._handleTermination(new Error('process exited'));
-  await Promise.all([conn.close(), conn.close()]);
-  await tick();
-  assert.deepEqual({ plans, tokens }, { plans: 1, tokens: 1 });
-  assert.equal(conn.handle, null); assert.equal(conn._agyPlan, null);
-  const { effect } = runtimeBundle();
-  await effect.run(effect.Fiber.await(handle.eventsFiber));
-  await release();
-  fs.rmSync(root, { recursive: true });
+  try {
+    await initAgentRuntime();
+    const conn = new AcpSessionConnection({ cwd: root, agentConfig: { id: 'termination-fixture', name: 'Unknown agent', command: process.execPath, args: [fileURLToPath(new URL('./agent-fixture.cjs', import.meta.url))] }, mcpInjection: { release: () => { tokens++; } } });
+    await conn.ensureReady();
+    const handle = conn.handle;
+    conn._agyPlan = { cleanup: async () => { plans++; } };
+    conn._handleTermination(new Error('process exited'));
+    await Promise.all([conn.close(), conn.close()]);
+    await tick();
+    assert.deepEqual({ plans, tokens }, { plans: 1, tokens: 1 });
+    assert.equal(conn.handle, null); assert.equal(conn._agyPlan, null);
+    const { effect } = runtimeBundle();
+    await effect.run(effect.Fiber.await(handle.eventsFiber));
+  } finally {
+    await release();
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('failed load and resume preserve the original native mapping and useful errors', async () => {
@@ -333,11 +336,17 @@ test('client patch saves cannot reenable an agent disabled by another settings c
   try {
     const selectedAgent = (await manager.buildCatalog()).agents.find(agent => agent.id === 'custom');
     await manager.handleRpc('agent/save', { agent: { id: 'custom', enabled: false } });
-    const start = source.indexOf('      const saveAgentPatch = async');
-    const end = source.indexOf('\n      const toggleModelFavorite', start);
-    const save = vm.compileFunction(`${source.slice(start, end)}\nreturn saveAgentPatch(patch);`, ['selectedAgent', 'patch', 'rpc', 'setBusyAction', 'setBanner', 'setCatalog', 'setSavedFlash', 't']);
     const noop = () => {};
-    assert.equal(await save(selectedAgent, { favoriteModels: ['m'] }, (method, input) => manager.handleRpc(method, input), noop, noop, noop, noop, key => key), true);
+    assert.equal(await saveAgentPatch({
+      selectedAgent,
+      patch: { favoriteModels: ['m'] },
+      rpc: (method, input) => manager.handleRpc(method, input),
+      setBusyAction: noop,
+      setBanner: noop,
+      setCatalog: noop,
+      setSavedFlash: noop,
+      t: key => key,
+    }), true);
     const current = (await manager.buildCatalog()).agents.find(agent => agent.id === 'custom');
     assert.equal(current.enabled, false); assert.deepEqual(current.favoriteModels, ['m']);
   } finally { await manager.dispose(); fs.rmSync(root, { recursive: true }); }

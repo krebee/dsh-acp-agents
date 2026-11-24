@@ -8,6 +8,7 @@ import http from 'node:http';
 import { createRequire } from 'node:module';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { saveAgentsConfig } from '../lib/presets.js';
+import { allowDesktopConfirm } from './confirm-stub.mjs';
 
 const hostRoot = process.env.DSH_INSTALLED_HOST_ROOT;
 if (!hostRoot) throw new Error('Set DSH_INSTALLED_HOST_ROOT to the installed desktop vendor/deepseek-harness directory.');
@@ -32,7 +33,8 @@ const nativeAgentId = process.env.DSH_TEST_NATIVE_AGENT;
 const nativeHome = process.env.DSH_NATIVE_HOME;
 if (nativeAgentId && !nativeHome) throw new Error('Set DSH_NATIVE_HOME to use the configured native agent through its existing runtime profile.');
 
-test('installed host admits the exact parent, dispatches once and returns a durable configured-agent result', { timeout: nativeAgentId ? 240000 : 30000 }, async () => {
+test('installed host admits the exact parent, dispatches once and returns a durable configured-agent result', { timeout: nativeAgentId ? 240000 : 30000 }, async (t) => {
+  await allowDesktopConfirm(t);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'acp-installed-host-'));
   const previousHome = process.env.DSH_HOME;
   process.env.DSH_HOME = nativeAgentId ? nativeHome : root;
@@ -97,7 +99,7 @@ test('installed host admits the exact parent, dispatches once and returns a dura
       timer = setTimeout(() => reject(new Error('Installed-host configured task did not settle')), nativeAgentId ? 210000 : 15000);
     });
     // Keep an early admission rejection from becoming an unrelated unhandled timeout.
-    settled.catch(() => {});
+    settled.catch(() => { /* The assertion below awaits the original admission result; prevent an early unhandled rejection. */ });
     const args = nativeAgentId
       ? { agent: nativeAgentId, model: process.env.DSH_TEST_NATIVE_MODEL, prompt: process.env.DSH_TEST_NATIVE_PROMPT || '只读连通验收。不要调用工具，不要读取或修改文件，只回复 ACP_NATIVE_OK。', client_request_id: 'native-installed-contract' }
       : { agent: 'unknown-installed-host', prompt: 'ASYNC_CHILD_WORK', client_request_id: 'installed-contract' };
@@ -149,7 +151,7 @@ test('installed host admits the exact parent, dispatches once and returns a dura
         pidTimer = setTimeout(() => reject(new Error('Real cancellation command did not start')), 45000);
         read();
       });
-      processStarted.catch(() => {});
+      processStarted.catch(() => { /* The assertion below awaits processStarted; prevent an early unhandled rejection. */ });
       try {
         const command = `node -e "require('fs').writeFileSync('native-cancel.pid',String(process.pid));setTimeout(()=>{},60000)"`;
         const cancel = await ctx.tools.get('acp_delegate').execute({ agent: nativeAgentId, model: process.env.DSH_TEST_NATIVE_MODEL,
@@ -188,7 +190,7 @@ test('installed host admits the exact parent, dispatches once and returns a dura
         });
         progressTimer = setTimeout(() => reject(new Error('Host progress blocked behind unfinished background tool')), 5000);
       });
-      progressed.catch(() => {});
+      progressed.catch(() => { /* The assertion below awaits progressed; prevent an early unhandled rejection. */ });
       const background = await ctx.tools.get('acp_delegate').execute({ agent: 'unknown-installed-host', prompt: 'BACKGROUND_TOOL_FLOW' }, { agent: parent, signal });
       try {
         const backgroundSession = await progressed;
