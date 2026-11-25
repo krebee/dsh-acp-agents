@@ -6,7 +6,7 @@
 
 支持 Claude Code、OpenAI Codex、Google Antigravity、Cognition Devin，以及其他兼容 [Agent Client Protocol（ACP）](https://agentclientprotocol.com/) 的服务。账号、模型和运行配置统一在 **设置 → Agent** 管理；会话底部使用 Agent 分栏选择器，集中切换 Agent、模型和推理等级。
 
-[发布与下载](https://github.com/ChisaAlter/dsh-acp-agents/releases) · [问题反馈](https://github.com/ChisaAlter/dsh-acp-agents/issues) · [许可证](LICENSE)
+[发布与下载](https://github.com/krebee/dsh-acp-agents/releases) · [问题反馈](https://github.com/krebee/dsh-acp-agents/issues) · [许可证](LICENSE)
 
 ## 可以做什么
 
@@ -34,6 +34,13 @@
 
 截图来自 0.4.8 在鲸屿中的实际运行，使用合成测试 Agent；界面语言为简体中文。
 
+## 0.4.10 更新
+
+- 宿主审批服务不可用时默认拒绝绕过审批，并严格验证桌面确认接口及其响应。
+- 限制宿主环境变量继承，减少 Agent 间意外泄露凭据的风险。请为各 Agent 显式配置所需的凭据和非标准环境变量；现有环境变量认证及代理设置可能需要重新配置。
+- 验证工作树创建与清理，禁止递归删除未登记的目录，并减少诊断日志中的敏感信息。
+- 新增日文 README 与 GitHub Actions，在测试通过后发布插件包及 SHA-256 校验文件。
+
 ## 0.4.9 更新
 
 - 浏览另一个 Agent 或模型时，右栏同步预览它自己的推理等级和会话选项，不再混用当前 Agent 的参数。浏览不会切换会话；选中模型后可修改 Multitask 等选项。
@@ -50,7 +57,7 @@
 
 ### 1. 安装插件
 
-从 [GitHub Releases](https://github.com/ChisaAlter/dsh-acp-agents/releases) 下载需要的 `.tgz` 插件包，在文件所在目录执行：
+从 [GitHub Releases](https://github.com/krebee/dsh-acp-agents/releases) 下载需要的 `.tgz` 插件包，在文件所在目录执行：
 
 ```sh
 dsh plugin --profile web add "./dsh-acp-agents-<版本号>.tgz"
@@ -61,13 +68,13 @@ dsh plugin --profile web add "./dsh-acp-agents-<版本号>.tgz"
 **需要当前源码版本时**，可以直接打包，无需先重建随仓库附带的运行时：
 
 ```sh
-git clone https://github.com/ChisaAlter/dsh-acp-agents.git
+git clone https://github.com/krebee/dsh-acp-agents.git
 cd dsh-acp-agents
 npm pack
-dsh plugin --profile web add ./dsh-acp-agents-0.4.9.tgz
+dsh plugin --profile web add ./dsh-acp-agents-0.4.10.tgz
 ```
 
-当前源码包版本为 **0.4.9**；发布页中的包以其对应标签为准。
+当前源码包版本为 **0.4.10**；发布页中的包以其对应标签为准。
 
 ### 2. 配置账号
 

@@ -6,7 +6,7 @@
 
 Claude Code、OpenAI Codex、Google Antigravity、Cognition Devin、および [Agent Client Protocol（ACP）](https://agentclientprotocol.com/) に対応したその他のサービスを利用できます。アカウント、モデル、実行設定は **設定 → Agent** で一元管理し、会話画面下部のエージェント別セレクターでエージェント、モデル、推論レベルを選択できます。
 
-[リリース・ダウンロード](https://github.com/ChisaAlter/dsh-acp-agents/releases) · [問題を報告する](https://github.com/ChisaAlter/dsh-acp-agents/issues) · [ライセンス](LICENSE)
+[リリース・ダウンロード](https://github.com/krebee/dsh-acp-agents/releases) · [問題を報告する](https://github.com/krebee/dsh-acp-agents/issues) · [ライセンス](LICENSE)
 
 ## 主な機能
 
@@ -34,6 +34,13 @@ Claude Code、OpenAI Codex、Google Antigravity、Cognition Devin、および [A
 
 スクリーンショットは、テスト用の模擬エージェントを使用して Whale Isle 上でバージョン 0.4.8 を実行したものです。画面の表示言語は簡体字中国語です。
 
+## 0.4.10 の変更点
+
+- ホストの承認サービスが利用できない場合に権限を緩和しないようにし、デスクトップ承認の接続先と応答を厳格に検証します。
+- ホスト環境の認証情報を一括継承せず、エージェントごとに必要な環境変数を設定する方式に変更しました。既存の環境変数による認証・プロキシ設定は再設定が必要な場合があります。
+- Worktree の作成・削除を検証し、未登録のディレクトリの再帰削除を禁止しました。ログの機密情報対策も強化しています。
+- 日本語 README と、テスト成功後に配布パッケージ・SHA-256 チェックサムを公開する GitHub Actions を追加しました。
+
 ## 0.4.9 の変更点
 
 - 別のエージェントやモデルを閲覧する際、現在使用中のエージェントの設定を流用せず、閲覧先固有の推論レベルとセッションオプションをプレビューします。閲覧だけでは会話の接続先は切り替わりません。Multitask などのオプションはモデル選択後に変更できます。
@@ -50,7 +57,7 @@ Claude Code、OpenAI Codex、Google Antigravity、Cognition Devin、および [A
 
 ### 1. プラグインのインストール
 
-[GitHub Releases](https://github.com/ChisaAlter/dsh-acp-agents/releases) から必要なバージョンの `.tgz` プラグインパッケージをダウンロードし、そのファイルがあるディレクトリで次のコマンドを実行します。
+[GitHub Releases](https://github.com/krebee/dsh-acp-agents/releases) から必要なバージョンの `.tgz` プラグインパッケージをダウンロードし、そのファイルがあるディレクトリで次のコマンドを実行します。
 
 ```sh
 dsh plugin --profile web add "./dsh-acp-agents-<version>.tgz"
@@ -61,13 +68,13 @@ dsh plugin --profile web add "./dsh-acp-agents-<version>.tgz"
 **現在のソースコードをパッケージ化する場合**は、同梱ランタイムを再ビルドせずに利用できます。
 
 ```sh
-git clone https://github.com/ChisaAlter/dsh-acp-agents.git
+git clone https://github.com/krebee/dsh-acp-agents.git
 cd dsh-acp-agents
 npm pack
-dsh plugin --profile web add ./dsh-acp-agents-0.4.9.tgz
+dsh plugin --profile web add ./dsh-acp-agents-0.4.10.tgz
 ```
 
-現在のソースパッケージのバージョンは **0.4.9** です。リリースページの配布ファイルは、それぞれのタグに対応します。
+現在のソースパッケージのバージョンは **0.4.10** です。リリースページの配布ファイルは、それぞれのタグに対応します。
 
 ### 2. アカウントの設定
 

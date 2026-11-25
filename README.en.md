@@ -6,7 +6,7 @@
 
 Connect Claude Code, OpenAI Codex, Google Antigravity, Cognition Devin, and other services compatible with the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/). Manage accounts, models, and runtime settings in **Settings → Agent**, then use the Agent-first picker at the bottom of the conversation to choose an Agent, model, and reasoning level.
 
-[Releases & downloads](https://github.com/ChisaAlter/dsh-acp-agents/releases) · [Report an issue](https://github.com/ChisaAlter/dsh-acp-agents/issues) · [License](LICENSE)
+[Releases & downloads](https://github.com/krebee/dsh-acp-agents/releases) · [Report an issue](https://github.com/krebee/dsh-acp-agents/issues) · [License](LICENSE)
 
 ## What you can do
 
@@ -34,6 +34,13 @@ Manage instances and accounts in **Settings → Agent**. In this screenshot, QA 
 
 These screenshots show version 0.4.8 running in Whale Isle with synthetic test Agents. The interface language is Simplified Chinese.
 
+## What's new in 0.4.10
+
+- Fail closed when the host approval service is unavailable and validate the desktop confirmation endpoint and response.
+- Restrict inherited host environment credentials to prevent accidental cross-agent disclosure. Configure credentials and nonstandard variables on the intended Agent; existing environment-based authentication and proxy settings may need reconfiguration.
+- Validate worktree creation and cleanup, prohibit recursive deletion of unregistered directories, and reduce sensitive diagnostic logging.
+- Add a Japanese README and GitHub Actions for tested release packages with SHA-256 checksums.
+
 ## What's new in 0.4.9
 
 - Browsing another Agent or model previews its own reasoning levels and session options without borrowing the current Agent's values. Browsing does not change the conversation route; select the model before editing options such as Multitask.
@@ -50,7 +57,7 @@ These screenshots show version 0.4.8 running in Whale Isle with synthetic test A
 
 ### 1. Install the plugin
 
-Download a `.tgz` plugin package from [GitHub Releases](https://github.com/ChisaAlter/dsh-acp-agents/releases), then run this command in the download directory:
+Download a `.tgz` plugin package from [GitHub Releases](https://github.com/krebee/dsh-acp-agents/releases), then run this command in the download directory:
 
 ```sh
 dsh plugin --profile web add "./dsh-acp-agents-<version>.tgz"
@@ -61,13 +68,13 @@ Replace `<version>` with the version of the downloaded file, and use the profile
 **To package the current source**, you can use the bundled runtime without rebuilding it first:
 
 ```sh
-git clone https://github.com/ChisaAlter/dsh-acp-agents.git
+git clone https://github.com/krebee/dsh-acp-agents.git
 cd dsh-acp-agents
 npm pack
-dsh plugin --profile web add ./dsh-acp-agents-0.4.9.tgz
+dsh plugin --profile web add ./dsh-acp-agents-0.4.10.tgz
 ```
 
-The current source package version is **0.4.9**. Assets on the releases page correspond to their own tags.
+The current source package version is **0.4.10**. Assets on the releases page correspond to their own tags.
 
 ### 2. Configure an account
 

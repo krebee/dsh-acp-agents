@@ -1,0 +1,132 @@
+name: Test and release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['22.19.0', '24']
+    steps:
+      # Pinned versions of actions/checkout v4.2.2 and actions/setup-node v4.4.0.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+
+  release:
+    name: Package and publish
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Check version and existing release
+        id: version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid stable version"; exit 1; }
+          tag="v$version"
+          if [[ "$EVENT" == push && -n "$BEFORE" && "$BEFORE" != 0000000000000000000000000000000000000000 ]]; then
+            previous=$(git show "$BEFORE:package.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>console.log(JSON.parse(s).version))')
+            if [[ "$previous" == "$version" ]]; then
+              echo "Version unchanged; not publishing."
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists; refusing to overwrite."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # An existing tag must already point to this tested commit.
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            [[ "$(git rev-parse "refs/tags/$tag^{commit}")" == "$GITHUB_SHA" ]] || { echo "Tag points to another commit"; exit 1; }
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - name: Pack and verify distribution
+        if: steps.version.outputs.publish == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          npm pack --ignore-scripts --json --pack-destination dist > dist/pack.json
+          node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const assert = require('node:assert/strict');
+          const [pkg] = JSON.parse(fs.readFileSync('dist/pack.json', 'utf8'));
+          assert.equal(pkg.name, 'dsh-acp-agents');
+          assert.equal(pkg.version, process.env.VERSION);
+          assert.equal(pkg.filename, 'dsh-acp-agents-' + process.env.VERSION + '.tgz');
+          const files = new Set(pkg.files.map(f => f.path));
+          for (const file of ['package.json', 'LICENSE', 'README.md', 'README.en.md', 'README.zh-CN.md',
+            'lib/index.js', 'lib/vendor/agent-runtime.cjs', 'lib/vendor/mcp-bridge.cjs',
+            'lib/agent-environment.js', 'client/client.js', 'cordis.patch.yml']) {
+            assert.ok(files.has(file), 'Missing package file: ' + file);
+          }
+          NODE
+          cd dist
+          sha256sum "dsh-acp-agents-$VERSION.tgz" > SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - name: Publish tested package
+        if: steps.version.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Never upload to an existing release or to a tag for an untested commit.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists; refusing to overwrite."
+            exit 0
+          fi
+          remote_tags=$(git ls-remote --tags origin "refs/tags/$TAG" "refs/tags/$TAG^{}")
+          if [[ -n "$remote_tags" ]]; then
+            target=$(printf '%s\n' "$remote_tags" | tail -n 1 | cut -f 1)
+            [[ "$target" == "$GITHUB_SHA" ]] || { echo "Remote tag points to another commit"; exit 1; }
+          fi
+          args=(--repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --generate-notes)
+          notes="docs/releases/$VERSION.md"
+          if [[ -f "$notes" ]]; then args+=(--notes-file "$notes"); fi
+          gh release create "$TAG" "dist/dsh-acp-agents-$VERSION.tgz" dist/SHA256SUMS "${args[@]}"
