@@ -28,7 +28,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: ${{ matrix.node }}
+      # Use the actual host tool-schema implementation, not a mock. Install in
+      # an isolated test-only prefix to keep the distributable unchanged.
+      - name: Install supported host test dependency
+        run: |
+          node -e "require('node:fs').mkdirSync('.ci-host',{recursive:true});require('node:fs').writeFileSync('.ci-host/package.json','{}')"
+          npm install --prefix .ci-host --no-save --package-lock=false --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org @deepseek-ai/dsh-tools@0.2.2-rc.2
+          node -e "const {createRequire}=require('node:module');const r=createRequire(require('node:path').resolve('.ci-host/package.json'));require('node:assert/strict').equal(r('@deepseek-ai/dsh-tools/package.json').version,'0.2.2-rc.2');require('node:assert/strict').equal(typeof r('@deepseek-ai/dsh-tools').defineTool,'function')"
       - run: npm test
+        env:
+          DSH_HARNESS_ROOT: ${{ github.workspace }}/.ci-host
 
   release:
     name: Package and publish
@@ -54,20 +63,17 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENT: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           version=$(node -p "require('./package.json').version")
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid stable version"; exit 1; }
           tag="v$version"
-          if [[ "$EVENT" == push && -n "$BEFORE" && "$BEFORE" != 0000000000000000000000000000000000000000 ]]; then
-            previous=$(git show "$BEFORE:package.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>console.log(JSON.parse(s).version))')
-            if [[ "$previous" == "$version" ]]; then
-              echo "Version unchanged; not publishing."
-              echo "publish=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
+          # A checked-in release note is explicit release intent. Permit
+          # another attempt at an unpublished version after a CI-only fix.
+          if [[ ! -f "docs/releases/$version.md" ]]; then
+            echo "No release notes for this version; not publishing."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release already exists; refusing to overwrite."
@@ -121,6 +127,9 @@ jobs:
             echo "Release already exists; refusing to overwrite."
             exit 0
           fi
+          # Do not publish a stale run after main has advanced.
+          current_main=$(git ls-remote origin refs/heads/main | cut -f 1)
+          [[ "$current_main" == "$GITHUB_SHA" ]] || { echo "main has advanced; not publishing"; exit 1; }
           remote_tags=$(git ls-remote --tags origin "refs/tags/$TAG" "refs/tags/$TAG^{}")
           if [[ -n "$remote_tags" ]]; then
             target=$(printf '%s\n' "$remote_tags" | tail -n 1 | cut -f 1)
