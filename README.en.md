@@ -1,6 +1,6 @@
 # DSH ACP Agents
 
-[简体中文](README.md) · [English](README.en.md)
+[日本語](README.md) · [简体中文](README.zh-CN.md) · [English](README.en.md)
 
 **Bring your coding agents into DeepSeek Harness and Whale Isle—for direct conversations and managed subagent collaboration.**
 
