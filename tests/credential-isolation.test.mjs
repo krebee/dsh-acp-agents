@@ -38,7 +38,10 @@ test('host credentials and arbitrary environment values are not inherited by ACP
 test('Windows case-insensitive overrides do not retain inherited aliases', () => {
   const env = restrictedAgentEnvironment({ OPENAI_API_KEY: 'agent-only', PATH: 'agent-path' },
     { Path: 'host-path', openai_api_key: 'host-secret', Github_Token: 'other-secret' }, 'win32');
-  assert.deepEqual(env, { PATH: 'agent-path', OPENAI_API_KEY: 'agent-only', Github_Token: '' });
+  assert.deepEqual(env, { Path: 'agent-path', openai_api_key: 'agent-only', Github_Token: '', OPENAI_API_KEY: 'agent-only', PATH: 'agent-path' });
+  const merged = { OPENAI_API_KEY: 'host-uppercase', ...restrictedAgentEnvironment({ openai_api_key: 'agent-only' }, { OPENAI_API_KEY: 'host-uppercase' }, 'win32') };
+  assert.equal(merged.OPENAI_API_KEY, 'agent-only');
+  assert.equal(merged.openai_api_key, 'agent-only');
 });
 
 test('runtime environment uses the same restriction while preserving explicit settings', () => {
