@@ -1,7 +1,7 @@
 {
   "name": "dsh-acp-agents",
   "description": "Independent DeepSeek Harness plugin for configured coding agents, conversation switching, and managed subagent delegation.",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "type": "module",
   "main": "lib/index.js",
   "license": "MIT",
@@ -17,11 +17,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChisaAlter/dsh-acp-agents.git"
+    "url": "git+https://github.com/krebee/dsh-acp-agents.git"
   },
-  "homepage": "https://github.com/ChisaAlter/dsh-acp-agents#readme",
+  "homepage": "https://github.com/krebee/dsh-acp-agents#readme",
   "bugs": {
-    "url": "https://github.com/ChisaAlter/dsh-acp-agents/issues"
+    "url": "https://github.com/krebee/dsh-acp-agents/issues"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
