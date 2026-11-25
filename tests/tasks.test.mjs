@@ -156,7 +156,7 @@ test('Antigravity multiple-choice input returns the selected native option inste
   assert.equal(conn.activeTurn.toolCalls.get('interaction_choose').status, 'completed');
 });
 
-test('Antigravity account validation rejects configured-but-unadvertised ids without selecting a model', async () => {
+test('Antigravity grouped configured ids fold onto advertised variants; unadvertised ids stay rejected', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'acp-model-policy-'));
   const bundle = runtimeBundle();
   await bundle.initAgentRuntime({ cacheDir: path.join(dir, 'cache'), toolsDir: path.join(dir, 'tools'), paths: { cwd: dir, baseDir: dir, stateDir: dir, attachmentsDir: path.join(dir, 'attachments') } });
@@ -168,11 +168,17 @@ test('Antigravity account validation rejects configured-but-unadvertised ids wit
   conn.wiring = { isAntigravity: true };
   let selected = 0;
   const { Effect } = runtimeBundle().effect;
-  conn.handle = { service: { getConfigOptions: Effect.succeed(config), setModel: () => Effect.sync(() => { selected++; }) } };
-  await assert.rejects(conn.syncModelAndEffort('flash', undefined), /unavailable for this Google account/);
-  assert.equal(selected, 0);
-  await conn.syncModelAndEffort('flash-high', undefined);
+  conn.handle = { service: { getConfigOptions: Effect.succeed(config), setModel: (id) => Effect.sync(() => { selected++; config[0].currentValue = id; }) } };
+  // A grouped configured id folds onto the advertised default-effort variant.
+  await conn.syncModelAndEffort('flash', undefined);
   assert.equal(selected, 1);
+  // A configured id with no advertised variant of its base is rejected
+  // without selecting a model (the account-validation policy still holds).
+  await assert.rejects(conn.syncModelAndEffort('ghost', undefined), /unavailable for this Google account/);
+  assert.equal(selected, 1);
+  // A real advertised id still selects directly.
+  await conn.syncModelAndEffort('flash-low', undefined);
+  assert.equal(selected, 2);
   } finally { await bundle.disposeAgentRuntime(); fs.rmSync(dir, { recursive: true }); }
 });
 
