@@ -185,6 +185,8 @@ Data is stored under `$DSH_HOME`, or `~/.dsh` when it is unset:
 | `acp-profiles/` | Default account directories; explicit `profileDir` takes precedence. |
 | `acp-error.log` | Redacted diagnostic log, rotated to `.1` at 1 MiB. |
 
+Host environment variables are no longer inherited wholesale by ACP subprocesses. Configure API keys, tokens, proxy settings and other nonstandard environment variables explicitly on the intended Agent; ordinary OS and executable-discovery variables are inherited. This reduces accidental cross-agent credential disclosure but is not an OS sandbox: agents still receive their own configured credentials and may access files permitted by the operating system. Never run an untrusted Agent with access to sensitive local files or unrestricted networking.
+
 Protect these files like conversation logs. Credentials are stored in local configuration; catalog responses mask secret-shaped values and retain unchanged values on save. On platforms supporting POSIX permissions, files are restricted to `0600` and plugin-owned account/cache directories to `0700`. Existing user-specified `profileDir` directories are not changed. Windows access control follows local directory permissions.
 
 Upgrades retain instance IDs, `acp:<instance ID>` providers, account directories, session mappings, and existing runtime caches. Explicit `profileDir` overrides inherited or conflicting home variables. Without an explicit override, Antigravity continues using its existing instance directory and supports both newer `agy acp` and older server launch modes.
