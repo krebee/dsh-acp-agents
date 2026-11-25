@@ -1,14 +1,14 @@
 {
   "name": "dsh-acp-agents",
   "description": "Independent DeepSeek Harness plugin for configured coding agents, conversation switching, and managed subagent delegation.",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "type": "module",
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
     "build:client": "node tools/build-client.mjs",
     "build:runtime": "npm --prefix tools/runtime-build run build",
-    "test": "node --test tests/plugin.test.mjs tests/tasks.test.mjs tests/auth.test.mjs tests/reliability.test.mjs tests/client-options.test.mjs tests/hardening.test.mjs tests/team.test.mjs",
+    "test": "node --test tests/plugin.test.mjs tests/tasks.test.mjs tests/auth.test.mjs tests/reliability.test.mjs tests/client-options.test.mjs tests/hardening.test.mjs tests/team.test.mjs tests/security-boundaries.test.mjs tests/credential-isolation.test.mjs",
     "test:client": "node --test tests/client-compat.test.mjs",
     "test:host-compat": "node --test tests/host-compat.test.mjs",
     "test:host": "node tests/host-integration.mjs",
@@ -17,11 +17,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChisaAlter/dsh-acp-agents.git"
+    "url": "git+https://github.com/krebee/dsh-acp-agents.git"
   },
-  "homepage": "https://github.com/ChisaAlter/dsh-acp-agents#readme",
+  "homepage": "https://github.com/krebee/dsh-acp-agents#readme",
   "bugs": {
-    "url": "https://github.com/ChisaAlter/dsh-acp-agents/issues"
+    "url": "https://github.com/krebee/dsh-acp-agents/issues"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
@@ -68,6 +68,7 @@
     "client",
     "README.md",
     "README.en.md",
+    "README.zh-CN.md",
     "docs/screenshots/agent-picker.png",
     "docs/screenshots/agent-account.png",
     "THIRD_PARTY_NOTICES.md",

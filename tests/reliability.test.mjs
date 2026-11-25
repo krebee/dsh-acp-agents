@@ -92,7 +92,8 @@ test('approval policies retain override, default and never semantics on both shi
   assert.equal(approvalPolicyOf({ overrideOf: () => 'ask', config: { policy: 'never' } }, session), 'ask');
   assert.equal(approvalPolicyOf({ overrideOf: () => undefined, config: { policy: 'never' } }, session), 'never');
   assert.equal(approvalPolicyOf({ overrideOf: () => undefined, config: {} }, session), 'ask');
-  assert.equal(approvalPolicyOf(undefined, session), 'never');
+  assert.equal(approvalPolicyOf(undefined, session), 'ask');
+  assert.equal(approvalPolicyOf({ policyOf: () => undefined }, session), 'ask');
 });
 
 test('provider terminal error, cancellation and token limit keep their distinct meanings', async () => {

@@ -1,12 +1,12 @@
 # DSH ACP Agents
 
-[简体中文](README.md) · [English](README.en.md)
+[日本語](README.md) · [简体中文](README.zh-CN.md) · [English](README.en.md)
 
 **Bring your coding agents into DeepSeek Harness and Whale Isle—for direct conversations and managed subagent collaboration.**
 
 Connect Claude Code, OpenAI Codex, Google Antigravity, Cognition Devin, and other services compatible with the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/). Manage accounts, models, and runtime settings in **Settings → Agent**, then use the Agent-first picker at the bottom of the conversation to choose an Agent, model, and reasoning level.
 
-[Releases & downloads](https://github.com/ChisaAlter/dsh-acp-agents/releases) · [Report an issue](https://github.com/ChisaAlter/dsh-acp-agents/issues) · [License](LICENSE)
+[Releases & downloads](https://github.com/krebee/dsh-acp-agents/releases) · [Report an issue](https://github.com/krebee/dsh-acp-agents/issues) · [License](LICENSE)
 
 ## What you can do
 
@@ -34,6 +34,13 @@ Manage instances and accounts in **Settings → Agent**. In this screenshot, QA 
 
 These screenshots show version 0.4.8 running in Whale Isle with synthetic test Agents. The interface language is Simplified Chinese.
 
+## What's new in 0.4.10
+
+- Fail closed when the host approval service is unavailable and validate the desktop confirmation endpoint and response.
+- Restrict inherited host environment credentials to prevent accidental cross-agent disclosure. Configure credentials and nonstandard variables on the intended Agent; existing environment-based authentication and proxy settings may need reconfiguration.
+- Validate worktree creation and cleanup, prohibit recursive deletion of unregistered directories, and reduce sensitive diagnostic logging.
+- Add a Japanese README and GitHub Actions for tested release packages with SHA-256 checksums.
+
 ## What's new in 0.4.9
 
 - Browsing another Agent or model previews its own reasoning levels and session options without borrowing the current Agent's values. Browsing does not change the conversation route; select the model before editing options such as Multitask.
@@ -50,7 +57,7 @@ These screenshots show version 0.4.8 running in Whale Isle with synthetic test A
 
 ### 1. Install the plugin
 
-Download a `.tgz` plugin package from [GitHub Releases](https://github.com/ChisaAlter/dsh-acp-agents/releases), then run this command in the download directory:
+Download a `.tgz` plugin package from [GitHub Releases](https://github.com/krebee/dsh-acp-agents/releases), then run this command in the download directory:
 
 ```sh
 dsh plugin --profile web add "./dsh-acp-agents-<version>.tgz"
@@ -61,13 +68,13 @@ Replace `<version>` with the version of the downloaded file, and use the profile
 **To package the current source**, you can use the bundled runtime without rebuilding it first:
 
 ```sh
-git clone https://github.com/ChisaAlter/dsh-acp-agents.git
+git clone https://github.com/krebee/dsh-acp-agents.git
 cd dsh-acp-agents
 npm pack
-dsh plugin --profile web add ./dsh-acp-agents-0.4.9.tgz
+dsh plugin --profile web add ./dsh-acp-agents-0.4.10.tgz
 ```
 
-The current source package version is **0.4.9**. Assets on the releases page correspond to their own tags.
+The current source package version is **0.4.10**. Assets on the releases page correspond to their own tags.
 
 ### 2. Configure an account
 
@@ -184,6 +191,8 @@ Data is stored under `$DSH_HOME`, or `~/.dsh` when it is unset:
 | `acp-tasks.json` | Durable task receipts, including prompts, output, and retry identity. |
 | `acp-profiles/` | Default account directories; explicit `profileDir` takes precedence. |
 | `acp-error.log` | Redacted diagnostic log, rotated to `.1` at 1 MiB. |
+
+Host environment variables are no longer inherited wholesale by ACP subprocesses. Configure API keys, tokens, proxy settings and other nonstandard environment variables explicitly on the intended Agent; ordinary OS and executable-discovery variables are inherited. This reduces accidental cross-agent credential disclosure but is not an OS sandbox: agents still receive their own configured credentials and may access files permitted by the operating system. Never run an untrusted Agent with access to sensitive local files or unrestricted networking.
 
 Protect these files like conversation logs. Credentials are stored in local configuration; catalog responses mask secret-shaped values and retain unchanged values on save. On platforms supporting POSIX permissions, files are restricted to `0600` and plugin-owned account/cache directories to `0700`. Existing user-specified `profileDir` directories are not changed. Windows access control follows local directory permissions.
 
